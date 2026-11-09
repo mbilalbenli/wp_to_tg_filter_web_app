@@ -31,3 +31,10 @@ Engelleyici olmayan bulgular buraya kısa gerekçeyle kaydedilir ve ana görev s
 - Webhook artık /api/whatsapp/status çağrısında da idempotent kaydediliyor. Handler yalnızca message.received/message.sent işliyor.
 - Doğrulama: OpenWA formatında simüle payload -> matched:1, history status:sent (gerçek Telegram teslimi dahil). Webhook kaydı GET ile doğrulandı (active:true).
 - Not: Hiç grup seçili değilse handler tüm grupları dinler (demo fallback). Grup seçimi yapılırsa sadece seçilenler dinlenir.
+
+## Teslim Sıfırlaması (2026-11-09)
+
+- Silindi: history(3), filters(1), telegram_targets(1), groups(45). Kaldı: admin user(1), varsayılan settings(3).
+- WhatsApp session'a dokunulmadı; düşünce `start` ile QR'sız `ready` durumuna alındı. Webhook aktif doğrulandı.
+- Dashboard'daki sabit wa_connected=false hatası gerçek OpenWA durumuyla düzeltildi.
+- Gerçek zincir kanıtı: Test grup mesajları webhook'ta matched=1, Telegram status=sent (sıfırlama öncesi).
