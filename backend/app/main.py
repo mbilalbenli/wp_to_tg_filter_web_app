@@ -287,6 +287,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
     except Exception:
         payload = {}
     event = payload.get("event") if isinstance(payload, dict) else None
+    print(f"webhook event={event}", flush=True)
     if event and event not in ("message.received", "message.sent"):
         return {"ok": True, "matched": 0, "skipped": event}
     m = _extract(payload)
@@ -327,4 +328,5 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
                        status=status, error=err))
         matched += 1
     db.commit()
+    print(f"webhook processed group={m['group_id']} text={m['text'][:60]!r} matched={matched}", flush=True)
     return {"ok": True, "matched": matched}
