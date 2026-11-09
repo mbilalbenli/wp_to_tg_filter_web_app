@@ -1,0 +1,66 @@
+name: wp-to-tg-filter
+
+services:
+  openwa:
+    # NOT: İmaj adı doğrulanmalı. Bkz. docs/INFRASTRUCTURE.md ve
+    # https://github.com/rmyndharis/OpenWA — repo'daki güncel imaj/tag kullanılmalıdır.
+    image: ${OPENWA_IMAGE:-ghcr.io/rmyndharis/openwa:latest}
+    container_name: wp-tg-openwa
+    restart: unless-stopped
+    environment:
+      PORT: "2785"
+      OPENWA_API_KEY: ${OPENWA_API_KEY:-}
+    ports:
+      - "${OPENWA_PORT:-2785}:2785"
+    volumes:
+      - openwa_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:2785/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  backend:
+    build: ./backend
+    container_name: wp-tg-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: sqlite:////data/app.db
+      DATA_DIR: /data
+      OPENWA_BASE_URL: http://openwa:2785
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - app_data:/data
+    depends_on:
+      - openwa
+
+  frontend:
+    build: ./frontend
+    container_name: wp-tg-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE: /api
+      VITE_PROXY_TARGET: http://backend:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: wp-tg-cloudflared
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    depends_on:
+      - frontend
+
+volumes:
+  openwa_data:
+  app_data:
