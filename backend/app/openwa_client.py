@@ -114,11 +114,22 @@ async def connect():
 
 
 async def disconnect():
+    """Full wipe: logout from WhatsApp, stop the engine and DELETE the session
+    so no phone number or credentials remain in OpenWA. Next connect needs a
+    fresh QR scan."""
+    global _session_id
     try:
-        async with httpx.AsyncClient(timeout=10) as c:
+        async with httpx.AsyncClient(timeout=15) as c:
             s = await _get_session(c)
             if s:
-                await c.post(f"{BASE}/api/sessions/{s.get('id')}/stop", headers=_headers())
+                sid = s.get("id")
+                for action in ("logout", "stop"):
+                    try:
+                        await c.post(f"{BASE}/api/sessions/{sid}/{action}", headers=_headers())
+                    except Exception:
+                        pass
+                await c.delete(f"{BASE}/api/sessions/{sid}", headers=_headers())
+                _session_id = None
     except Exception:
         pass
     return {"connected": False, "account": None, "qr": None, "state": "disconnected"}

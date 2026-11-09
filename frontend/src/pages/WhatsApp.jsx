@@ -58,7 +58,7 @@ export default function WhatsApp() {
             <div className="row" style={{ marginTop: 14 }}>
               <button className="btn" onClick={() => act(api.waConnect, 'Bağlantı başlatıldı. QR kodu kısa süre içinde görünecek.')}>Bağlan / QR Al</button>
               <button className="btn secondary btn-loading" onClick={() => load(true)} disabled={refreshing}>{refreshing && <Spinner small />}{refreshing ? 'Yenileniyor...' : 'Durumu Yenile'}</button>
-              <button className="btn danger" onClick={() => act(api.waDisconnect, 'Bağlantı kesildi.')}>Bağlantıyı Kes</button>
+              <button className="btn danger" onClick={() => { if (confirm('Bağlantı kesilsin mi? WhatsApp oturumu silinir; numara ve oturum bilgileri temizlenir, tekrar bağlanmak için yeni QR gerekir.')) act(api.waDisconnect, 'Bağlantı kesildi, oturum bilgileri silindi.') }}>Bağlantıyı Kes ve Bilgileri Sil</button>
             </div>
           </>
         )}

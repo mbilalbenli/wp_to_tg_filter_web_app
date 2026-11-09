@@ -96,8 +96,12 @@ async def wa_connect(user=Depends(require_auth)):
 
 
 @app.post("/api/whatsapp/disconnect")
-async def wa_disconnect(user=Depends(require_auth)):
-    return await openwa_client.disconnect()
+async def wa_disconnect(db: Session = Depends(get_db), user=Depends(require_auth)):
+    result = await openwa_client.disconnect()
+    # Synced group list belongs to the removed account; clear it too.
+    db.query(Group).delete()
+    db.commit()
+    return result
 
 
 @app.get("/api/groups")
