@@ -37,6 +37,10 @@ class TargetIn(BaseModel):
     is_default: bool = False
 
 
+class TokenIn(BaseModel):
+    bot_token: str
+
+
 class SelectionIn(BaseModel):
     group_ids: List[str] = []
 

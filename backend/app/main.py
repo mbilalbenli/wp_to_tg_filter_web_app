@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from . import openwa_client, telegram_client
 from .filter_engine import evaluate_filter
 from .models import Base, Filter, Group, History, SessionLocal, Setting, TelegramTarget, User, engine, get_db
-from .schemas import FilterIn, LoginIn, SelectionIn, SettingsIn, TargetIn
+from .schemas import FilterIn, LoginIn, SelectionIn, SettingsIn, TargetIn, TokenIn
 from .security import create_token, hash_password, require_auth, verify_password
 
 app = FastAPI(title="wp_to_tg_filter")
@@ -160,6 +160,22 @@ def delete_filter(fid: int, db: Session = Depends(get_db), user=Depends(require_
     if not f: raise HTTPException(404, "Filtre bulunamadı")
     db.delete(f); db.commit()
     return {"ok": True}
+
+
+@app.post("/api/telegram/validate-token")
+async def validate_token(body: TokenIn, user=Depends(require_auth)):
+    bot, err = await telegram_client.get_me(body.bot_token.strip())
+    if not bot:
+        raise HTTPException(400, f"Token doğrulanamadı: {err}")
+    return {"ok": True, "bot": bot}
+
+
+@app.post("/api/telegram/discover-chat")
+async def discover_chat(body: TokenIn, user=Depends(require_auth)):
+    chats, err = await telegram_client.discover_chats(body.bot_token.strip())
+    if err:
+        raise HTTPException(400, f"Sohbetler alınamadı: {err}")
+    return {"chats": chats}
 
 
 @app.get("/api/telegram/targets")
