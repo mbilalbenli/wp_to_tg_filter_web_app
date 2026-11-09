@@ -24,3 +24,10 @@ Engelleyici olmayan bulgular buraya kısa gerekçeyle kaydedilir ve ana görev s
 - Kök nedenler: (1) backend'de OPENWA_API_KEY boştu (OpenWA 401), (2) client uydurma uçlar kullanıyordu (/sessions/default/qr), session hiç oluşturulup start edilmiyordu, (3) openwa volume /data yerine /app/data olmalıydı; yanlış mount key/session'ı her restart'ta sıfırlıyordu, (4) healthcheck 8080 yerine 2785 olmalı.
 - Gerçek akış: POST /api/sessions {name} -> POST /:id/start -> GET /:id/qr ({qrCode: data:image/png;base64,...}). API key kalıcı kaynak: container içi /app/data/.api-key, sunucu .env OPENWA_API_KEY'e yazılır.
 - Doğrulama: panel API'si ve https://wp-tg-filter.mbbe.dev üzerinden state=qr_ready, qr_len=6322 alındı.
+
+## Düzeltildi (2026-11-09, filtre yakalamama)
+
+- Kök neden: OpenWA webhook hiç kayıtlı değildi. (1) Event isimleri yanlıştı (message/message_create yerine message.received/message.sent), kayıt 400 dönüyor ve hata yutuluyordu. (2) Webhook URL'i iç adres (http://backend:8000) SSRF korumasına takılıyordu; public URL kullanıldı: https://wp-tg-filter.mbbe.dev/api/webhook/openwa.
+- Webhook artık /api/whatsapp/status çağrısında da idempotent kaydediliyor. Handler yalnızca message.received/message.sent işliyor.
+- Doğrulama: OpenWA formatında simüle payload -> matched:1, history status:sent (gerçek Telegram teslimi dahil). Webhook kaydı GET ile doğrulandı (active:true).
+- Not: Hiç grup seçili değilse handler tüm grupları dinler (demo fallback). Grup seçimi yapılırsa sadece seçilenler dinlenir.
