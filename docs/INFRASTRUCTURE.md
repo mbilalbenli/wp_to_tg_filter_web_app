@@ -41,3 +41,13 @@ Notlar: `TUNNEL_TOKEN` sırdır, commit edilmez. Named tunnel yerine token'lı (
 ## Yedekleme
 
 SQLite dosyası `app_data` volume'ünde (`/data/app.db`); volume yedeği yeterlidir. OpenWA session `openwa_data` volume'ündedir; kaybı yeniden QR gerektirir.
+
+## Deploy Kaydı (2026-11-09, mini-server mbbe)
+
+- Kod: `~/wp_to_tg_filter` (bilal-linux / mbbe), `docker compose up -d` + `--profile tunnel`
+- Servisler: wp-tg-backend, wp-tg-frontend, wp-tg-openwa (ghcr.io/rmyndharis/openwa, /api/health/ready OK), wp-tg-cloudflared
+- CF Tunnel: `wp-tg-filter` (remote-config, healthy), ingress `wp-tg-filter.mbbe.dev -> http://frontend:5173`
+- DNS: CNAME `wp-tg-filter.mbbe.dev -> 7c68c6f8-283e-46b8-a494-33c10fd214af.cfargotunnel.com` (proxied)
+- Doğrulama: `https://wp-tg-filter.mbbe.dev/` = 200, `/api/health` = {"status":"ok"}
+- TUNNEL_TOKEN ve JWT_SECRET yalnızca sunucudaki `.env` içindedir, repoya girmez.
+- Kalan: gerçek WhatsApp QR eşleşmesi + Telegram bot wizard ile canlı teslim testi kullanıcı tarafından panelden yapılacak.

@@ -112,14 +112,14 @@ Her filtre kaydı şu alanları taşır (panelde checkbox/select ile düzenlenir
 
 ## 7. Kabul Kriterleri (MVP)
 
-- [ ] `docker compose up` ile openwa + backend + frontend ayağa kalkar
+- [x] `docker compose up` ile openwa + backend + frontend ayağa kalkar
 - [ ] Panelden QR taranır, WhatsApp bağlanır, gruplar listelenir ve seçilir
 - [ ] Wizard ile Telegram bot token + chat_id girilir, test mesajı gider
 - [ ] Filtre (kelime + tüm §4 ayarları) oluşturulur
 - [ ] Seçili grupta kelime geçen mesaj, eşleşen her filtre için ayrı Telegram mesajı olarak,
       sade metin formatında, medya varsa medyasıyla iletilir
 - [ ] İletilen mesaj Geçmiş sayfasında görünür
-- [ ] `https://wp-tg-filter.mbbe.dev` üzerinden panele erişilir (mini-server + CF Tunnel)
+- [x] `https://wp-tg-filter.mbbe.dev` üzerinden panele erişilir (mini-server + CF Tunnel)
 
 ## 8. Kapsam Dışı (Demo için)
 
