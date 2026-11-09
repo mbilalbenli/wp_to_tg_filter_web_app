@@ -71,14 +71,15 @@ def me(user=Depends(require_auth)):
 
 
 @app.get("/api/dashboard")
-def dashboard(db: Session = Depends(get_db), user=Depends(require_auth)):
+async def dashboard(db: Session = Depends(get_db), user=Depends(require_auth)):
+    wa = await openwa_client.get_status(with_qr=False)
     today = datetime.utcnow().date()
     total = db.query(History).filter(History.status == "sent").count()
     sent_today = db.query(History).filter(History.status == "sent").all()
     sent_today = len([h for h in sent_today if h.created_at and h.created_at.date() == today])
     recent = db.query(History).order_by(History.id.desc()).limit(10).all()
     selected = db.query(Group).filter_by(selected=True).count()
-    return {"wa_connected": False, "wa_account": None,
+    return {"wa_connected": wa.get("connected", False), "wa_account": wa.get("account"),
             "active_filters": db.query(Filter).filter_by(enabled=True).count(),
             "selected_groups": selected, "sent_today": sent_today, "total_sent": total,
             "recent_matches": [history_dict(h) for h in recent]}

@@ -35,7 +35,7 @@ def _status_of(session, qr=None):
     if not session:
         return {"connected": False, "account": None, "qr": None, "state": "disconnected"}
     st = str(session.get("status") or "").lower()
-    connected = st in _CONNECTED or bool(session.get("phone"))
+    connected = st in _CONNECTED
     account = session.get("phone") or session.get("pushName")
     return {"connected": connected, "account": account, "qr": None if connected else qr,
             "state": st or ("connected" if connected else "disconnected")}
