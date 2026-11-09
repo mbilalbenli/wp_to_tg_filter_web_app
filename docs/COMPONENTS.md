@@ -33,3 +33,7 @@ React + Vite SPA. Sayfa = route, ortak parçalar `components/` altında. API eri
 ## Veri Akışı
 
 Her sayfa kendi verisini API'den çeker (global store gerekmez); login token'ı `localStorage`/bellekte tutulur, `401`'de login'e dönülür.
+
+## Telegram Sihirbazı (güncel)
+
+4 adım: 1) BotFather düğmesi + /newbot kopyala + token doğrula (getMe), 2) Botu Aç (t.me) -> /start -> otomatik sohbet bulma (getUpdates, 3 sn polling, aday listesinden seçim; elle giriş details altında), 3) Kaydet, 4) Test mesajı.

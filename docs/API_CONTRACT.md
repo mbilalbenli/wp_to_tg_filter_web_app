@@ -75,3 +75,8 @@ Not: `GET/POST /api/telegram/bots` ayrı ucu yoktur; bot token hedef kaydındad�
 ## Webhook (OpenWA)
 
 `POST /api/webhook/openwa` — JWT yok (OpenWA çağırır). Esnek payload tolere edilir; olası şekillerden `chatId/groupId/from/chat`, `sender/author`, `body/text/caption`, medya tipi çıkarılır. Seçili olmayan grup/eşleşme yoksa `{"ok":true,"matched":0}`; eşleşmede `{"ok":true,"matched":<filtre sayısı>}`.
+
+## Telegram Wizard Uçları (2026-11-09)
+
+- `POST /api/telegram/validate-token` {bot_token} -> {ok, bot:{id,username,first_name,link}} (getMe; geçersizse 400 Türkçe)
+- `POST /api/telegram/discover-chat` {bot_token} -> {chats:[{chat_id,type,title,username,from}]} (getUpdates; kullanıcı bota /start yazdıktan veya botun olduğu grupta mesaj attıktan sonra dolar)
