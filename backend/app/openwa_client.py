@@ -73,6 +73,19 @@ async def get_status(with_qr=True):
             s = await _get_session(c)
             if s:
                 await _register_webhook(c, s.get("id"))
+            st = _status_of(s)
+            if st["connected"]:
+                # OpenWA can keep a stale "ready" after the phone revokes the
+                # linked device; probe the engine with a live query.
+                try:
+                    r = await c.get(f"{BASE}/api/sessions/{s.get('id')}/chats",
+                                    headers=_headers(), params={"limit": 1})
+                    if r.status_code >= 400:
+                        return {"connected": False, "account": st["account"], "qr": None,
+                                "state": "disconnected"}
+                except Exception:
+                    return {"connected": False, "account": st["account"], "qr": None,
+                            "state": "disconnected"}
             qr = None
             if s and not _status_of(s)["connected"] and with_qr and s.get("status") not in (None, "created"):
                 qr = await _fetch_qr(c, s.get("id"))
