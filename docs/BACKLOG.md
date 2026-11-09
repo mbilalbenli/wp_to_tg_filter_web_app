@@ -18,3 +18,9 @@ Kapsam dışı / engelleyici olmayan maddeler. Öncelik sırası yoktur; her mad
 ## İnceleme Notları
 
 Engelleyici olmayan bulgular buraya kısa gerekçeyle kaydedilir ve ana görev sürdürülür (AGENTS.md §1).
+
+## Düzeltildi (2026-11-09, QR gelmeme)
+
+- Kök nedenler: (1) backend'de OPENWA_API_KEY boştu (OpenWA 401), (2) client uydurma uçlar kullanıyordu (/sessions/default/qr), session hiç oluşturulup start edilmiyordu, (3) openwa volume /data yerine /app/data olmalıydı; yanlış mount key/session'ı her restart'ta sıfırlıyordu, (4) healthcheck 8080 yerine 2785 olmalı.
+- Gerçek akış: POST /api/sessions {name} -> POST /:id/start -> GET /:id/qr ({qrCode: data:image/png;base64,...}). API key kalıcı kaynak: container içi /app/data/.api-key, sunucu .env OPENWA_API_KEY'e yazılır.
+- Doğrulama: panel API'si ve https://wp-tg-filter.mbbe.dev üzerinden state=qr_ready, qr_len=6322 alındı.

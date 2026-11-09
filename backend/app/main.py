@@ -86,22 +86,17 @@ def dashboard(db: Session = Depends(get_db), user=Depends(require_auth)):
 
 @app.get("/api/whatsapp/status")
 async def wa_status(user=Depends(require_auth)):
-    s = await openwa_client.get_status()
-    if not s["connected"]:
-        s["qr"] = await openwa_client.get_qr()
-    return s
+    return await openwa_client.get_status()
 
 
 @app.post("/api/whatsapp/connect")
 async def wa_connect(user=Depends(require_auth)):
-    s = await openwa_client.get_status()
-    s["qr"] = s.get("qr") or await openwa_client.get_qr()
-    return s
+    return await openwa_client.connect()
 
 
 @app.post("/api/whatsapp/disconnect")
-def wa_disconnect(user=Depends(require_auth)):
-    return {"connected": False, "account": None, "qr": None, "state": "disconnected"}
+async def wa_disconnect(user=Depends(require_auth)):
+    return await openwa_client.disconnect()
 
 
 @app.get("/api/groups")
