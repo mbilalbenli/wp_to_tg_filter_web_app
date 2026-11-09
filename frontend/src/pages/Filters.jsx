@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../api'
+import { ErrorBox, Spinner, useToast } from '../components/feedback'
 
 const MEDIA = ['text', 'image', 'video', 'audio', 'document', 'sticker']
 const MEDIA_LABELS = { text: 'Metin', image: 'Resim', video: 'Video', audio: 'Ses', document: 'Dosya', sticker: 'Sticker' }
@@ -13,6 +14,8 @@ const listToText = (a) => (a || []).join(', ')
 const textToList = (s) => (typeof s === 'string' ? s.split(',').map((x) => x.trim()).filter(Boolean) : s || [])
 
 export default function Filters() {
+  const toast = useToast()
+  const [saving, setSaving] = useState(false)
   const [filters, setFilters] = useState([])
   const [targets, setTargets] = useState([])
   const [groups, setGroups] = useState([])
@@ -32,7 +35,7 @@ export default function Filters() {
   const toggleList = (k, v) => setForm((f) => ({ ...f, [k]: f[k].includes(v) ? f[k].filter((x) => x !== v) : [...f[k], v] }))
 
   const submit = async (e) => {
-    e.preventDefault(); setError(''); setMsg('')
+    e.preventDefault(); setError(''); setMsg(''); setSaving(true)
     const body = {
       ...form,
       exclude_keywords: textToList(form.exclude_keywords),
@@ -44,20 +47,19 @@ export default function Filters() {
     }
     try {
       if (editing) await api.updateFilter(editing, body); else await api.createFilter(body)
-      setMsg(editing ? 'Filtre güncellendi.' : 'Filtre oluşturuldu.')
+      toast.success(editing ? 'Filtre güncellendi.' : 'Filtre oluşturuldu.')
       setForm(empty); setEditing(null); load()
-    } catch (err) { setError(err.message) }
+    } catch (err) { setError(err.message) } finally { setSaving(false) }
   }
 
   const edit = (f) => { setEditing(f.id); setForm({ ...empty, ...f, exclude_keywords: f.exclude_keywords || [], sender_list: f.sender_list || [], telegram_target_id: f.telegram_target_id ?? '', min_length: f.min_length ?? '', max_length: f.max_length ?? '', media_types: f.media_types || [], group_ids: f.group_ids || [] }); window.scrollTo(0, 0) }
-  const del = async (id) => { if (!confirm('Filtre silinsin mi?')) return; try { await api.deleteFilter(id); load() } catch (e) { setError(e.message) } }
+  const del = async (id) => { if (!confirm('Filtre silinsin mi?')) return; try { await api.deleteFilter(id); toast.success('Filtre silindi.'); load() } catch (e) { toast.error(e.message) } }
 
   return (
     <>
       <h1>Filtreler</h1>
       <p className="muted">Anahtar kelime ve eşleşme kurallarını yönetin.</p>
-      {error && <div className="alert error">{error}</div>}
-      {msg && <div className="alert success">{msg}</div>}
+      <ErrorBox message={error} onRetry={load} />
 
       <form className="card" onSubmit={submit}>
         <h2>{editing ? 'Filtreyi Düzenle' : 'Yeni Filtre'}</h2>
@@ -93,7 +95,7 @@ export default function Filters() {
         </div>
         {groups.length > 0 && <div className="field"><label>Geçerli gruplar (boş = tüm seçili gruplar)</label>{groups.map((g) => <label key={g.id} className="check"><input type="checkbox" checked={form.group_ids.map(String).includes(String(g.id))} onChange={() => toggleList('group_ids', g.id)} /> {g.name}</label>)}</div>}
         <div className="row">
-          <button className="btn">{editing ? 'Kaydet' : 'Filtre Oluştur'}</button>
+          <button className="btn btn-loading" disabled={saving}>{saving && <Spinner small />}{editing ? 'Kaydet' : 'Filtre Oluştur'}</button>
           {editing && <button type="button" className="btn secondary" onClick={() => { setEditing(null); setForm(empty) }}>İptal</button>}
         </div>
       </form>

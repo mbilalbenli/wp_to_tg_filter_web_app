@@ -286,6 +286,9 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         payload = await request.json()
     except Exception:
         payload = {}
+    event = payload.get("event") if isinstance(payload, dict) else None
+    if event and event not in ("message.received", "message.sent"):
+        return {"ok": True, "matched": 0, "skipped": event}
     m = _extract(payload)
     if not m["text"] and m["media_type"] == "text":
         return {"ok": True, "matched": 0}

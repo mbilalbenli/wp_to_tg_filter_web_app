@@ -62,7 +62,7 @@ async def _register_webhook(c, sid):
         if any(h.get("url") == WEBHOOK_URL for h in items if isinstance(h, dict)):
             return
         await c.post(f"{BASE}/api/sessions/{sid}/webhooks", headers=_headers(),
-                     json={"url": WEBHOOK_URL, "events": ["message", "message_create"]})
+                     json={"url": WEBHOOK_URL, "events": ["message.received", "message.sent"]})
     except Exception:
         pass
 
@@ -71,6 +71,8 @@ async def get_status(with_qr=True):
     try:
         async with httpx.AsyncClient(timeout=8) as c:
             s = await _get_session(c)
+            if s:
+                await _register_webhook(c, s.get("id"))
             qr = None
             if s and not _status_of(s)["connected"] and with_qr and s.get("status") not in (None, "created"):
                 qr = await _fetch_qr(c, s.get("id"))

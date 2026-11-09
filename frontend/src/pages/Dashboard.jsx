@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api'
+import { ErrorBox, LoadingBlock } from '../components/feedback'
 
 export default function Dashboard() {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
-  useEffect(() => { api.dashboard().then(setData).catch((e) => setError(e.message)) }, [])
-  if (error) return <><h1>Panel</h1><div className="alert error">{error}</div></>
-  if (!data) return <p className="muted">Yükleniyor...</p>
+  const load = useCallback(() => { setError(''); api.dashboard().then(setData).catch((e) => setError(e.message)) }, [])
+  useEffect(() => { load() }, [load])
+  if (error) return <><h1>Panel</h1><ErrorBox message={error} onRetry={load} /></>
+  if (!data) return <><h1>Panel</h1><div className="card"><LoadingBlock label="Panel yükleniyor..." /></div></>
   const recent = data.recent_matches || []
   return (
     <>

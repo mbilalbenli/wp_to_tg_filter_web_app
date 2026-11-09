@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { isAuthed } from './api'
 import Layout from './components/Layout'
+import { ToastProvider } from './components/feedback'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import WhatsApp from './pages/WhatsApp'
@@ -15,6 +16,7 @@ const Protected = ({ children }) => (isAuthed() ? children : <Navigate to="/logi
 export default function App() {
   return (
     <BrowserRouter>
+    <ToastProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route element={<Protected><Layout /></Protected>}>
@@ -28,6 +30,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+    </ToastProvider>
     </BrowserRouter>
   )
 }

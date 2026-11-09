@@ -1,14 +1,16 @@
 import { useEffect, useState, useCallback } from 'react'
 import api from '../api'
+import { ErrorBox, LoadingBlock, useToast } from '../components/feedback'
 
 export default function WhatsApp() {
+  const toast = useToast()
   const [status, setStatus] = useState(null)
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
   const load = useCallback(() => { api.waStatus().then(setStatus).catch((e) => setError(e.message)) }, [])
   useEffect(() => { load(); const t = setInterval(load, 5000); return () => clearInterval(t) }, [load])
 
-  const act = async (fn, ok) => { setError(''); setMsg(''); try { await fn(); setMsg(ok); load() } catch (e) { setError(e.message) } }
+  const act = async (fn, ok) => { setError(''); setMsg(''); try { await fn(); toast.success(ok); load() } catch (e) { setError(e.message) } }
   const qr = status?.qr
   const qrSrc = qr ? (qr.startsWith('data:') || qr.startsWith('http') ? qr : null) : null
 
@@ -16,10 +18,10 @@ export default function WhatsApp() {
     <>
       <h1>WhatsApp Bağlantısı</h1>
       <p className="muted">QR kodu WhatsApp uygulamasından tarayarak bağlanın.</p>
-      {error && <div className="alert error">{error}</div>}
+      <ErrorBox message={error} onRetry={load} />
       {msg && <div className="alert success">{msg}</div>}
       <div className="card">
-        {!status ? <p className="muted">Durum yükleniyor...</p> : (
+        {!status ? <LoadingBlock label="WhatsApp durumu yükleniyor..." /> : (
           <>
             <p>Durum: <span className={`badge ${status.connected ? 'ok' : 'fail'}`}>{status.connected ? 'Bağlı' : 'Bağlı Değil'}</span> <span className="muted">{status.state || ''}</span></p>
             <p>Hesap: <strong>{status.account || '—'}</strong></p>

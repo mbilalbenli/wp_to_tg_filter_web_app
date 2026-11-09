@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import api from '../api'
+import { Spinner, useToast } from '../components/feedback'
 
 const empty = { name: '', bot_token: '', chat_id: '', chat_title: '', is_default: false }
 const STEPS = ['1. Bot + Token', '2. Sohbeti Bağla', '3. Kaydet', '4. Test Et']
 
 export default function Telegram() {
+  const toast = useToast()
   const [targets, setTargets] = useState([])
   const [form, setForm] = useState(empty)
   const [editing, setEditing] = useState(null)
@@ -56,15 +58,15 @@ export default function Telegram() {
     e.preventDefault(); setError(''); setMsg('')
     try {
       const d = editing ? await api.updateTarget(editing, form) : await api.createTarget(form)
-      setSavedId(d.id || editing); setMsg('Hedef kaydedildi. Şimdi test mesajı gönderin.'); setStep(4); load()
+      setSavedId(d.id || editing); toast.success('Hedef kaydedildi. Şimdi test mesajı gönderin.'); setStep(4); load()
     } catch (err) { setError(err.message) }
   }
   const test = async (id) => {
     setError(''); setMsg('')
-    try { const d = await api.testTarget(id); if (d.ok) setMsg('Test mesajı gönderildi. Telegram sohbetinizi kontrol edin.'); else setError(d.error || 'Test mesajı gönderilemedi.') }
+    try { const d = await api.testTarget(id); if (d.ok) toast.success('Test mesajı gönderildi. Telegram sohbetinizi kontrol edin.'); else setError(d.error || 'Test mesajı gönderilemedi.') }
     catch (e) { setError(e.message) }
   }
-  const del = async (id) => { if (!confirm('Hedef silinsin mi?')) return; try { await api.deleteTarget(id); load() } catch (e) { setError(e.message) } }
+  const del = async (id) => { if (!confirm('Hedef silinsin mi?')) return; try { await api.deleteTarget(id); toast.success('Hedef silindi.'); load() } catch (e) { setError(e.message) } }
   const edit = (t) => {
     setEditing(t.id); setSavedId(null); setBot(null); setChats([])
     setForm({ name: t.name || '', bot_token: '', chat_id: t.chat_id || '', chat_title: t.chat_title || '', is_default: !!t.is_default })
@@ -99,7 +101,7 @@ export default function Telegram() {
             </div>
             <div className="field"><label>Bot token</label><input value={form.bot_token} onChange={(e) => { set('bot_token', e.target.value); setBot(null) }} required={!editing} placeholder={editing ? 'Değiştirmek için yeni token girin, boş bırakmayın' : '123456789:ABC-...'} /></div>
             {bot && <div className="alert success">Bot doğrulandı: <strong>@{bot.username}</strong> ({bot.first_name})</div>}
-            <button type="button" className="btn" disabled={validating || !form.bot_token.trim()} onClick={validate}>{validating ? 'Doğrulanıyor...' : 'Tokeni Doğrula ve Devam Et →'}</button>
+            <button type="button" className="btn" disabled={validating || !form.bot_token.trim()} onClick={validate}>{validating ? <span className="btn-loading"><Spinner small />Doğrulanıyor...</span> : 'Tokeni Doğrula ve Devam Et →'}</button>
             {editing && <p className="muted" style={{ marginTop: 8 }}>Düzenlemede tokeni değiştirmeden devam etmek için hedef listesinden vazgeçip yeniden oluşturmanız gerekmez; token alanına mevcut tokeni tekrar yapıştırın.</p>}
           </>
         )}
@@ -116,7 +118,7 @@ export default function Telegram() {
             </div>
             <div className="row" style={{ marginBottom: 12 }}>
               {bot?.link && <a className="btn" href={bot.link} target="_blank" rel="noreferrer">Botu Aç (@{bot.username}) ↗</a>}
-              <button type="button" className="btn" onClick={startSearch} disabled={searching}>{searching ? 'Sohbet aranıyor... (bota mesaj yazın)' : 'Sohbeti Otomatik Bul'}</button>
+              <button type="button" className="btn" onClick={startSearch} disabled={searching}>{searching ? <span className="btn-loading"><Spinner small />Sohbet aranıyor... (bota mesaj yazın)</span> : 'Sohbeti Otomatik Bul'}</button>
             </div>
             {chats.length > 0 && (
               <div style={{ marginBottom: 12 }}>

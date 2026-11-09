@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api, { setToken } from '../api'
+import { Spinner } from '../components/feedback'
 
 export default function Login() {
   const [username, setUsername] = useState('admin')
@@ -26,7 +27,7 @@ export default function Login() {
         {error && <div className="alert error">{error}</div>}
         <div className="field"><label>Kullanıcı adı</label><input value={username} onChange={(e) => setUsername(e.target.value)} required autoComplete="username" /></div>
         <div className="field"><label>Şifre</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" /></div>
-        <button className="btn" style={{ width: '100%' }} disabled={loading}>{loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}</button>
+        <button className="btn" style={{ width: '100%' }} disabled={loading}>{loading ? <span className="btn-loading"><Spinner small />Giriş yapılıyor...</span> : 'Giriş Yap'}</button>
       </form>
     </div>
   )
