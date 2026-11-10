@@ -31,7 +31,7 @@ services:
       DATABASE_URL: sqlite:////data/app.db
       DATA_DIR: /data
       OPENWA_BASE_URL: http://openwa:2785
-      OPENWA_WEBHOOK_URL: ${OPENWA_WEBHOOK_URL:-https://wp-tg-filter.mbbe.dev/api/webhook/openwa}
+      OPENWA_WEBHOOK_URL: ${OPENWA_WEBHOOK_URL:-}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:

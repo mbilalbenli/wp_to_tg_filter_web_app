@@ -1,57 +1,91 @@
 # WhatsApp → Telegram Filtre Paneli
 
-WhatsApp gruplarındaki mesajları dinler, tanımladığınız kelime/filtrelerle eşleştirir ve eşleşen mesajları Telegram'a sade metin olarak iletir. Tek kullanıcılı MVP demo.
+WhatsApp gruplarındaki mesajları dinler, tanımladığınız kelime/filtrelerle eşleştirir ve eşleşen mesajları Telegram'a iletir. Tek kullanıcılı panel: QR ile WhatsApp bağlantısı, grup seçimi, kelime bazlı filtreler, Telegram bot sihirbazı ve geçmiş.
 
-Hedef tanımı: [docs/PROJECT_TARGET.md](docs/PROJECT_TARGET.md)
+## Tek Komutla Kurulum
 
-## Hızlı Başlangıç
+Gereksinim: Docker + Docker Compose v2, Git.
 
 ```bash
-cp .env.example .env   # ADMIN_PASSWORD ve JWT_SECRET değerlerini kontrol edin
-docker compose up --build
+curl -fsSL https://raw.githubusercontent.com/mbilalbenli/wp_to_tg_filter_web_app/main/install.sh | bash
 ```
+
+Kendi adresinizle (önerilen; WhatsApp webhook'u için public HTTPS gerekir):
+
+```bash
+PUBLIC_URL=https://wp-tg-filter.ornek.com ADMIN_PASSWORD=guclu-bir-sifre \
+  curl -fsSL https://raw.githubusercontent.com/mbilalbenli/wp_to_tg_filter_web_app/main/install.sh | bash
+```
+
+Repo'yu zaten klonladıysanız:
+
+```bash
+./install.sh
+```
+
+Script şunları yapar: Docker kontrolü → repo klonlama/güncelleme → `.env` oluşturma (rastgele `JWT_SECRET` üretir) → `docker compose up -d --build` → sağlık kontrolü → panel adresi ve ilk adımları yazdırır.
+
+Kurulum bitince:
 
 - Panel: http://localhost:5173
-- Backend sağlık: http://localhost:8000/api/health
-- Kullanıcı adı: `admin`
-- Şifre: `wp_to_tg159753` (`.env` içindeki `ADMIN_PASSWORD` ile değiştirilebilir)
+- Kullanıcı: `admin`
+- Şifre: `.env` içindeki `ADMIN_PASSWORD` (varsayılan `wp_to_tg159753`, demo içindir; değiştirin)
 
-## İlk Kurulum (Panel İçinde)
+## Manuel Kurulum
 
-1. **Giriş** — `admin` / şifrenizle giriş yapın.
-2. **WhatsApp Bağlantısı** — "Bağlan"a tıklayın, panelde çıkan QR kodu WhatsApp > Bağlı Cihazlar ile tarayın. Durum "Bağlı" olmalı.
-3. **Gruplar** — "Senkronize Et" ile grupları çekin, dinlenecek grupları işaretleyin, kaydedin.
-4. **Telegram Hedefleri (Wizard)** — BotFather'dan bot token alın, botu hedef sohbete ekleyin, chat_id girin, "Test Mesajı Gönder" ile doğrulayın.
-5. **Filtreler** — Kelime, hedef, hariç kelimeler, gönderen/sessiz saat/medya/link/uzunluk/grup kurallarını ayarlayıp aktif edin.
-6. **Geçmiş** — İletilen mesajlar burada listelenir. Sadece eşleşen mesajlar saklanır.
+```bash
+git clone https://github.com/mbilalbenli/wp_to_tg_filter_web_app.git
+cd wp_to_tg_filter_web_app
+cp .env.example .env   # ADMIN_PASSWORD, JWT_SECRET ve OPENWA_WEBHOOK_URL değerlerini düzenleyin
+docker compose up -d --build
+```
 
-## Mimari Özeti
+## Panelde İlk Kurulum
+
+1. **WhatsApp:** "Bağlan / QR Al" deyin, QR'ı WhatsApp → Bağlı Cihazlar ile tarayın. Durum `ready / Bağlı` olmalı.
+2. **Gruplar:** "Grupları Senkronize Et" ile listeyi çekin, dinlenecek grupları işaretleyip kaydedin. Hiç grup seçilmezse tüm gruplar dinlenir (demo davranışı).
+3. **Telegram (Sihirbaz):**
+   - BotFather'ı açıp `/newbot` ile bot oluşturun, tokeni yapıştırın, **Tokeni Doğrula** (bot `@kullanıcıadı` ile doğrulanır).
+   - **Botu Aç** deyip bota `/start` yazın; **Sohbeti Otomatik Bul** chat ID'yi `getUpdates` üzerinden bulur, listeden seçin. Grup için botu gruba ekleyip bir mesaj yazmanız yeterli.
+   - Kaydedip **Test Mesajı Gönder** ile doğrulayın.
+4. **Filtreler:** Kelime, hedef, hariç kelimeler, gönderen filtresi, sessiz saatler, medya/link/uzunluk/grup kurallarını ayarlayın. Bir mesaj birden çok filtreyle eşleşirse her filtre ayrı Telegram mesajı gönderir.
+
+## Mimari
 
 ```
-WhatsApp Grupları → OpenWA → POST /api/webhook/openwa → FastAPI Filtre Motoru → Telegram Bot API
+WhatsApp Grupları → OpenWA → webhook (public HTTPS) → FastAPI Filtre Motoru → Telegram Bot API
                                                               ↕ SQLite
                                                      React + Vite Panel (/api, JWT)
 ```
 
-Detay: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/API_CONTRACT.md](docs/API_CONTRACT.md)
+Servisler (Docker Compose): `openwa` (`ghcr.io/rmyndharis/openwa`, port 2785), `backend` (FastAPI, 8000), `frontend` (5173), `cloudflared` (opsiyonel `tunnel` profili).
 
-## Mini-Server / Tunnel ile Yayınlama
+Önemli notlar:
 
-Domain: `wp-tg-filter.mbbe.dev`
+- OpenWA webhook URL'i **public HTTPS** olmalıdır; iç adresler SSRF korumasına takılır. Adresi `.env` içinde `OPENWA_WEBHOOK_URL=https://<adresiniz>/api/webhook/openwa` olarak tanımlayın.
+- OpenWA API anahtarı ilk açılışta üretilir ve kalıcı olarak `/app/data/.api-key` içinde saklanır; bu değeri sunucudaki `.env` içinde `OPENWA_API_KEY` olarak tanımlayın.
+- **Bağlantıyı Kes ve Bilgileri Sil**, WhatsApp oturumunu tamamen siler (numara dahil); tekrar bağlanmak için yeni QR gerekir.
+
+## Cloudflare Tunnel ile Yayınlama
 
 ```bash
-# mini-server üzerinde
-docker compose up --build -d
-docker compose --profile tunnel up -d cloudflared   # TUNNEL_TOKEN .env içinde olmalı
+# .env içine TUNNEL_TOKEN yazın, sonra:
+docker compose --profile tunnel up -d
 ```
 
-1. Cloudflare Zero Trust > Networks > Tunnels içinde tunnel oluşturun, token'ı `.env`'e `TUNNEL_TOKEN` olarak yazın.
-2. Public Hostname: `wp-tg-filter.mbbe.dev` → `http://frontend:5173` (veya host üzerinden yayınlıyorsanız `http://localhost:5173`).
-3. Mevcut tünelleri doğrulamak için mini-server'a `cachyos-ssh` skill'i ile bağlanıp çalışan `cloudflared` servislerini / CF manager panelini kontrol edin. Bkz. [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md).
+Tünel yapılandırması, mini-server kurulumu ve doğrulama adımları: [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)
 
-> OpenWA imajı: `ghcr.io/rmyndharis/openwa:latest` (port 2785, resmi repodan doğrulandı).
+## Dokümantasyon
 
-## Geliştirme ve Test
+Hedef ve interview kararları: [docs/PROJECT_TARGET.md](docs/PROJECT_TARGET.md) · Mimari: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/API_CONTRACT.md](docs/API_CONTRACT.md) · Test: [docs/TESTING.md](docs/TESTING.md) · Diğer 12 doküman `docs/` altında.
 
-- Backend testleri: `pytest` (bkz. [docs/TESTING.md](docs/TESTING.md))
-- Dokümantasyon: `docs/` altındaki 12 doküman senkron tutulur.
+## Testler
+
+```bash
+python -m pytest backend/tests/ -q
+cd frontend && npm run build
+```
+
+## Güvenlik Notu
+
+Bu proje tek kullanıcılı demo hedefiyle yazıldı: tek admin hesabı, JWT oturumu, bot tokenları veritabanında. Üretimde `ADMIN_PASSWORD` ve `JWT_SECRET` değerlerini güçlü seçin, `.env` dosyasını asla commit etmeyin.
