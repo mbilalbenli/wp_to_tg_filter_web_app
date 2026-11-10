@@ -78,6 +78,27 @@ fi
 say "Servisler derlenip baslatiliyor (ilk kurulum birkac dakika surebilir)"
 docker compose up -d --build
 
+# OpenWA API anahtarini kalici kaynaktan (.api-key) alip .env'e yaz
+if ! grep -q '^OPENWA_API_KEY=owa_' .env 2>/dev/null; then
+  say "OpenWA API anahtari aliniyor"
+  for i in $(seq 1 30); do
+    KEY="$(docker compose exec -T openwa cat /app/data/.api-key 2>/dev/null || true)"
+    [ -n "$KEY" ] && break
+    sleep 2
+  done
+  if [ -n "${KEY:-}" ]; then
+    python3 - "$KEY" <<'PY'
+import pathlib, re, sys
+p = pathlib.Path(".env"); t = p.read_text()
+t = re.sub(r"^OPENWA_API_KEY=.*$", "OPENWA_API_KEY=" + sys.argv[1], t, flags=re.M)
+p.write_text(t)
+PY
+    docker compose up -d backend >/dev/null
+  else
+    printf 'UYARI: OpenWA API anahtari alinamadi; "docker compose exec openwa cat /app/data/.api-key" ciktisini .env icinde OPENWA_API_KEY olarak tanimlayin.\n' >&2
+  fi
+fi
+
 say "Saglik kontrolu bekleniyor"
 for i in $(seq 1 30); do
   if curl -fsS http://localhost:8000/api/health >/dev/null 2>&1; then break; fi
