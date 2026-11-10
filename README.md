@@ -1,91 +1,95 @@
-# WhatsApp → Telegram Filtre Paneli
+# WhatsApp → Telegram Filter Panel
 
-WhatsApp gruplarındaki mesajları dinler, tanımladığınız kelime/filtrelerle eşleştirir ve eşleşen mesajları Telegram'a iletir. Tek kullanıcılı panel: QR ile WhatsApp bağlantısı, grup seçimi, kelime bazlı filtreler, Telegram bot sihirbazı ve geçmiş.
+Listens to WhatsApp group messages, matches them against user-defined keyword filters, and forwards matching messages to Telegram. Single-user panel: QR-based WhatsApp connection, group selection, per-keyword filters, a Telegram bot setup wizard, and history.
 
-## Tek Komutla Kurulum
+## One-Command Install
 
-Gereksinim: Docker + Docker Compose v2, Git.
+Requirements: Docker + Docker Compose v2, Git.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/mbilalbenli/wp_to_tg_filter_web_app/main/install.sh | bash
 ```
 
-Kendi adresinizle (önerilen; WhatsApp webhook'u için public HTTPS gerekir):
+With your own password (recommended):
 
 ```bash
-PUBLIC_URL=https://wp-tg-filter.ornek.com ADMIN_PASSWORD=guclu-bir-sifre \
+ADMIN_PASSWORD=a-strong-password \
   curl -fsSL https://raw.githubusercontent.com/mbilalbenli/wp_to_tg_filter_web_app/main/install.sh | bash
 ```
 
-Repo'yu zaten klonladıysanız:
+If you already cloned the repository:
 
 ```bash
 ./install.sh
 ```
 
-Script şunları yapar: Docker kontrolü → repo klonlama/güncelleme → `.env` oluşturma (rastgele `JWT_SECRET` üretir) → `docker compose up -d --build` → sağlık kontrolü → panel adresi ve ilk adımları yazdırır.
+The script checks Docker, clones/updates the repo, creates `.env` with a random `JWT_SECRET`, fetches the OpenWA API key into `.env`, runs `docker compose up -d --build`, waits for health checks, and prints the panel URL and next steps.
 
-Kurulum bitince:
+After install:
 
 - Panel: http://localhost:5173
-- Kullanıcı: `admin`
-- Şifre: `.env` içindeki `ADMIN_PASSWORD` (varsayılan `wp_to_tg159753`, demo içindir; değiştirin)
+- Username: `admin`
+- Password: `ADMIN_PASSWORD` in `.env` (default `wp_to_tg159753`, demo only — change it)
 
-## Manuel Kurulum
+## Manual Install
 
 ```bash
 git clone https://github.com/mbilalbenli/wp_to_tg_filter_web_app.git
 cd wp_to_tg_filter_web_app
-cp .env.example .env   # ADMIN_PASSWORD, JWT_SECRET ve OPENWA_WEBHOOK_URL değerlerini düzenleyin
+cp .env.example .env   # edit ADMIN_PASSWORD, JWT_SECRET (and OPENWA_WEBHOOK_URL if you publish, see below)
 docker compose up -d --build
 ```
 
-## Panelde İlk Kurulum
+## First-Time Setup (in the panel)
 
-1. **WhatsApp:** "Bağlan / QR Al" deyin, QR'ı WhatsApp → Bağlı Cihazlar ile tarayın. Durum `ready / Bağlı` olmalı.
-2. **Gruplar:** "Grupları Senkronize Et" ile listeyi çekin, dinlenecek grupları işaretleyip kaydedin. Hiç grup seçilmezse tüm gruplar dinlenir (demo davranışı).
-3. **Telegram (Sihirbaz):**
-   - BotFather'ı açıp `/newbot` ile bot oluşturun, tokeni yapıştırın, **Tokeni Doğrula** (bot `@kullanıcıadı` ile doğrulanır).
-   - **Botu Aç** deyip bota `/start` yazın; **Sohbeti Otomatik Bul** chat ID'yi `getUpdates` üzerinden bulur, listeden seçin. Grup için botu gruba ekleyip bir mesaj yazmanız yeterli.
-   - Kaydedip **Test Mesajı Gönder** ile doğrulayın.
-4. **Filtreler:** Kelime, hedef, hariç kelimeler, gönderen filtresi, sessiz saatler, medya/link/uzunluk/grup kurallarını ayarlayın. Bir mesaj birden çok filtreyle eşleşirse her filtre ayrı Telegram mesajı gönderir.
+1. **WhatsApp:** Click "Connect / Get QR" and scan the QR code with WhatsApp → Linked Devices. Status should become `ready / Connected`.
+2. **Groups:** Click "Sync Groups", select the groups to listen to, and save. If no group is selected, all groups are listened to (demo behavior).
+3. **Telegram (Wizard):**
+   - Open BotFather, create a bot with `/newbot`, paste the token, and click **Verify Token** (the bot is confirmed by its `@username`).
+   - Click **Open Bot**, send `/start`, then **Find Chat Automatically** — chat ID is discovered via `getUpdates`; pick it from the list. For a group, add the bot to the group and send a message.
+   - Save and verify with **Send Test Message**.
+4. **Filters:** Set the keyword, target, excluded keywords, sender filter, quiet hours, and media/link/length/group rules. If one message matches multiple filters, each filter sends a separate Telegram message.
 
-## Mimari
+## Architecture
 
 ```
-WhatsApp Grupları → OpenWA → webhook (public HTTPS) → FastAPI Filtre Motoru → Telegram Bot API
+WhatsApp Groups → OpenWA → webhook (public HTTPS) → FastAPI Filter Engine → Telegram Bot API
                                                               ↕ SQLite
                                                      React + Vite Panel (/api, JWT)
 ```
 
-Servisler (Docker Compose): `openwa` (`ghcr.io/rmyndharis/openwa`, port 2785), `backend` (FastAPI, 8000), `frontend` (5173), `cloudflared` (opsiyonel `tunnel` profili).
+Services (Docker Compose): `openwa` (`ghcr.io/rmyndharis/openwa`, port 2785), `backend` (FastAPI, 8000), `frontend` (5173). An optional `cloudflared` service exists behind the `tunnel` profile (see below).
 
-Önemli notlar:
+Important notes:
 
-- OpenWA webhook URL'i **public HTTPS** olmalıdır; iç adresler SSRF korumasına takılır. Adresi `.env` içinde `OPENWA_WEBHOOK_URL=https://<adresiniz>/api/webhook/openwa` olarak tanımlayın.
-- OpenWA API anahtarı ilk açılışta üretilir ve kalıcı olarak `/app/data/.api-key` içinde saklanır; bu değeri sunucudaki `.env` içinde `OPENWA_API_KEY` olarak tanımlayın.
-- **Bağlantıyı Kes ve Bilgileri Sil**, WhatsApp oturumunu tamamen siler (numara dahil); tekrar bağlanmak için yeni QR gerekir.
+- The OpenWA webhook URL must be a **public HTTPS** address; internal addresses are rejected by its SSRF guard. Set it in `.env` as `OPENWA_WEBHOOK_URL=https://<your-address>/api/webhook/openwa`. Without a public address, the panel still works locally, but incoming WhatsApp messages cannot be delivered to the backend.
+- The OpenWA API key is generated on first boot and stored persistently in `/app/data/.api-key`; `install.sh` copies it into `.env` as `OPENWA_API_KEY` automatically.
+- **Disconnect and Delete Data** completely wipes the WhatsApp session (including the phone number); a fresh QR scan is required to reconnect.
 
-## Cloudflare Tunnel ile Yayınlama
+## Publishing (Optional): Cloudflare Tunnel
+
+The tunnel is **optional**. The app runs fully on `http://localhost:5173` without it. Use a tunnel only if you need to reach the panel from outside or give OpenWA a public webhook address, and you don't already have a reverse proxy / public HTTPS endpoint.
 
 ```bash
-# .env içine TUNNEL_TOKEN yazın, sonra:
+# Put TUNNEL_TOKEN in .env, then:
 docker compose --profile tunnel up -d
 ```
 
-Tünel yapılandırması, mini-server kurulumu ve doğrulama adımları: [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)
+Tunnel setup, mini-server deployment, and verification steps: [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md)
 
-## Dokümantasyon
+Alternatives: any public HTTPS endpoint in front of the frontend works the same way — just point `OPENWA_WEBHOOK_URL` at `https://<your-address>/api/webhook/openwa`.
 
-Hedef ve interview kararları: [docs/PROJECT_TARGET.md](docs/PROJECT_TARGET.md) · Mimari: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/API_CONTRACT.md](docs/API_CONTRACT.md) · Test: [docs/TESTING.md](docs/TESTING.md) · Diğer 12 doküman `docs/` altında.
+## Documentation
 
-## Testler
+Project target and interview decisions: [docs/PROJECT_TARGET.md](docs/PROJECT_TARGET.md) · Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/API_CONTRACT.md](docs/API_CONTRACT.md) · Testing: [docs/TESTING.md](docs/TESTING.md) · Full set of 12 documents under `docs/`.
+
+## Tests
 
 ```bash
 python -m pytest backend/tests/ -q
 cd frontend && npm run build
 ```
 
-## Güvenlik Notu
+## Security Note
 
-Bu proje tek kullanıcılı demo hedefiyle yazıldı: tek admin hesabı, JWT oturumu, bot tokenları veritabanında. Üretimde `ADMIN_PASSWORD` ve `JWT_SECRET` değerlerini güçlü seçin, `.env` dosyasını asla commit etmeyin.
+This project targets a single-user demo: one admin account, JWT sessions, bot tokens stored in the database. For production, choose strong `ADMIN_PASSWORD` and `JWT_SECRET` values, and never commit your `.env` file.

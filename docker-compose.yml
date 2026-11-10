@@ -51,6 +51,7 @@ services:
     depends_on:
       - backend
 
+  # Optional: only started with `--profile tunnel`. The app works without it on localhost.
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: wp-tg-cloudflared
